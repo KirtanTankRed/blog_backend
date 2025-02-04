@@ -44,7 +44,7 @@ async function connectUserInfoDB() {
 // async function connectBlogDB() {
 //   if (!blogDB) {
 //     try {
-//       blogDB = await mongoose.createConnection(process.env.MONGO_URI_BLOG);
+//       blogDB = await mongoose.connect(process.env.MONGO_URI_BLOG);
 //       console.log(`Blog DB connected`);
 //     } catch (error) {
 //       console.error(`Error connecting to Blog DB: ${error.message}`);
