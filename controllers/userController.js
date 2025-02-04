@@ -6,9 +6,9 @@ const {userModel} = require('../models/userModel');
 async function signupUser(request, response) {
     const { name, email, password } = request.body;
 
-    console.log("Inside signupUser");
+    // console.log("Inside signupUser"); //DEBUGGING
     //Check if user already exists
-    // const userExists = await User.findOne({ email });
+    
     const userExists = await userModel.findOne({ email });
     console.log("User exists ", userExists);
     
@@ -21,7 +21,7 @@ async function signupUser(request, response) {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     //Create new user
-    const user = new User({
+    const user = new userModel({
         name,
         email,
         password: hashedPassword
@@ -41,13 +41,17 @@ async function loginUser(request, response) {
     const { email, password } = request.body;
 
     //Find user by email
-    const user = await User.findOne({ email });
+    const user = await userModel.findOne({ email });
     if (!user) {
         return response.status(404).json({ message: "User not found" });
     }
 
     //compare password with stored hashed password
-    const isMatch = await bcrypt.compare(password, hashedPassword);
+
+    // console.log("Stored password", user.password); //DEBUGGING
+    // console.log("Input password", password); //DEBUGGING
+    const isMatch = await bcrypt.compare(password, user.password);
+    
 
     if (!isMatch) {
         return response.status(200).json({ message: "Invalid credentials" });
@@ -55,16 +59,17 @@ async function loginUser(request, response) {
 
     //user login
     request.session.user = { id: user._id, email: user.email }; //save user info to session
-    response.status(200).json({ message: "Log in successful", user: request.session.user });
+    response.status(200).json({ message: `Log in successful ${user.name}`, user: request.session.user });
 };
 
 // User Logout with Session
 function logoutUser(request, response) {
+
     request.session.destroy((error) => {
         if (error) {
             return response.status(500).json({ message: "Failed to log out" });
         }
-        response.status(200).json({ message: "Logged out successfully" });
+        response.status(200).json({ message: `Logged out successfully` });
     });
 };
 
