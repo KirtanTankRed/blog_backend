@@ -3,7 +3,7 @@ const {signupUser, loginUser, logoutUser} = require('../controllers/userControll
 const userRoute = express.Router();
 
 //POST: /signup
-userRoute.post("/signup", signupUser);
+userRoute.post("/id", signupUser);
 
 //POST: /login
 userRoute.post("/login", loginUser);
