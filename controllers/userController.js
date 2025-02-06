@@ -1,10 +1,9 @@
 const bcrypt = require('bcryptjs');
-// const User = require('../models/userModel');
 const {userModel} = require('../models/userModel');
 
 //User signup
 async function signupUser(request, response) {
-    const { name, email, password } = request.body;
+    const { name, email, password, role } = request.body;
 
     // console.log("Inside signupUser"); //DEBUGGING
     //Check if user already exists
@@ -24,7 +23,8 @@ async function signupUser(request, response) {
     const user = new userModel({
         name,
         email,
-        password: hashedPassword
+        password: hashedPassword,
+        role: role || 'reader' //Default role will be reader
     });
 
     try {
@@ -58,7 +58,7 @@ async function loginUser(request, response) {
     }
 
     //user login
-    request.session.user = { id: user._id, email: user.email }; //save user info to session
+    request.session.user = { id: user._id, name: user.name, email: user.email, role: user.role  }; //save user info to session
     response.status(200).json({ message: `Log in successful ${user.name}`, user: request.session.user });
 };
 
