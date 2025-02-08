@@ -1,37 +1,87 @@
-const Blog = require('../models/blogModel');
+const Blog = require("../models/blogModel");
 
 //Craete a new blog (access - blogger, admin only)
-async function createBlog(request, response){
-    const{title, description} = request.body;
+async function createBlog(request, response) {
+  const { title, description } = request.body;
 
-    if (!title || !description) {
-        return response.status(400).json({message: "Title and description cannot be empty!" });
-    }
+  if (!title || !description) {
+    return response
+      .status(400)
+      .json({ message: "Title and description cannot be empty!" });
+  }
 
-    const imageUrl = request.file ? request.file.path : "uploads/default.jpg"; // Use fallback if no image provided
+  const imageUrl = request.file ? request.file.path : "uploads/default.jpg"; // Use fallback if no image provided
 
-    try{
-        const newBlog = new Blog({
-            title: title,
-            image: imageUrl,
-            description: description,
-            author: request.session.user.id //store logged-in user as author
-        });
+  try {
+    const newBlog = new Blog({
+      title: title,
+      image: imageUrl,
+      description: description,
+      author: request.session.user.id, //store logged-in user as author
+    });
 
-        const savedBlog = await newBlog.save();
-        response.status(201).json({message: "Blog created successfully!", blog: savedBlog});
-    }catch(error) {
-        response.status(500).json({message: error.message});
-    }
+    const savedBlog = await newBlog.save();
+    response
+      .status(201)
+      .json({ message: "Blog created successfully!", blog: savedBlog });
+  } catch (error) {
+    response.status(500).json({ message: error.message });
+  }
 }
 
-async function getAllBlogs(request, response) {
+// Get paginated blogs with author details
+async function getallBlogs(request, response) {
+  try {
+    // Pagination setup
+    const page = parseInt(request.query.page) || 1;
+    const limit = parseInt(request.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Fetch blogs with author details, pagination, and sorting
+    const blogs = await Blog.find()
+      .populate("author", "name email role") // Include author details
+      .sort({ createdAt: -1 }) // Sort newest first
+      .skip(skip)
+      .limit(limit);
+
+    // Total count of blogs
+    const totalBlogs = await Blog.countDocuments();
+
+    response.status(200).json({
+      message: "Blogs fetched successfully",
+      page,
+      totalPages: Math.ceil(totalBlogs / limit),
+      blogs,
+    });
+  } catch (error) {
+    response.status(500).json({ message: error.message });
+  }
+}
+
+//Get Blog by id
+//Get a single blog by ID
+async function getBlogbyID(request, response){
     try{
-        const blogs = await Blog.find().populate('author', 'name email role'); //Fetch author details
-        response.status(200).json({blogs});
+        console.log('Inside getBlogbyID function');
+        const {id} = request.params;
+
+        const id_found = db.blogs.findOne({ _id: ObjectId("67a4c0f823b97cccd2d53963") })
+        console.log(`ID found ${id_found}`);
+
+        //Fetch blog by ID and populate author details
+        const blog = await Blog.findById(id).populate("author", "name email role");
+
+        if (!blog){
+            return response.status(404).json({message: "Blog not found"});
+        }
+        
+        //Send the fetched Blog
+        response.status(200).json({message: "Blog fetched succesfullly", blog});
+
     }catch(error){
-        response.status(500).json({message: error.message});
+        response.status(200).json({message: error.message});
     }
+
 }
 
-module.exports ={createBlog, getAllBlogs};
+module.exports = { createBlog, getallBlogs, getBlogbyID };
