@@ -13,6 +13,7 @@ blogRoute.post("/", checkRole("blogger"), upload.single("image"), createBlog);
 blogRoute.get("/", checkRole("admin", "blogger", "reader"), getallBlogs);
 
 //GET: Get blog by id
-blogRoute.get("/:id", checkRole("admin", "blogger", "reader"), getBlogbyID);
+// blogRoute.get("/:id", checkRole("admin", "blogger", "reader"), getBlogbyID);
+blogRoute.get("/:id", getBlogbyID);
 
 module.exports = blogRoute;
