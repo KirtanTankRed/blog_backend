@@ -1,5 +1,5 @@
 //logic for checking the role
-function checkRole(requiredRole) {
+function checkRole(...allowedRoles) {
   return (request, response, next) => {
     const user = request.session.user;
 
@@ -13,7 +13,7 @@ function checkRole(requiredRole) {
     }
 
     //Allow access if user has the required role or is an admin
-    if (user.role === requiredRole || user.role === "admin") {
+    if (allowedRoles.includes(user.role) || user.role === "admin") {
       return next();
     }
       return  response.status(403).json({
@@ -22,5 +22,4 @@ function checkRole(requiredRole) {
     };
   }
 
-
-module.exports = { checkRole };
+module.exports = checkRole;
