@@ -17,7 +17,7 @@ function checkRole(...allowedRoles) {
       return next();
     }
       return  response.status(403).json({
-          message: `Access denied. Requires ${requiredRole} or admin to access`,
+          message: `Access denied. Requires ${allowedRoles} or admin to access`,
         });
     };
   }

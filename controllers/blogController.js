@@ -32,6 +32,7 @@ async function createBlog(request, response) {
 // Get paginated blogs with author details
 async function getallBlogs(request, response) {
   try {
+    // console.log("Inside getallBlogs function"); //DEBUGGING
     // Pagination setup
     const page = parseInt(request.query.page) || 1;
     const limit = parseInt(request.query.limit) || 10;
@@ -60,28 +61,24 @@ async function getallBlogs(request, response) {
 
 //Get Blog by id
 //Get a single blog by ID
-async function getBlogbyID(request, response){
-    try{
-        console.log('Inside getBlogbyID function');
-        const {id} = request.params;
+async function getBlogbyID(request, response) {
+  try {
+    console.log("Inside getBlogbyID function");
+    const { id } = request.params;
+    console.log("Received ID:", request.params.id); // Add this
 
-        const id_found = db.blogs.findOne({ _id: ObjectId("67a4c0f823b97cccd2d53963") })
-        console.log(`ID found ${id_found}`);
-
-        //Fetch blog by ID and populate author details
-        const blog = await Blog.findById(id).populate("author", "name email role");
-
-        if (!blog){
-            return response.status(404).json({message: "Blog not found"});
-        }
-        
-        //Send the fetched Blog
-        response.status(200).json({message: "Blog fetched succesfullly", blog});
-
-    }catch(error){
-        response.status(200).json({message: error.message});
+    //Fetch blog by ID and populate author details
+    // const blog = await Blog.findById(id).populate("author", "name email role");
+    const blog = await Blog.findById(id);
+    if (!blog) {
+      return response.status(404).json({ message: "Blog not found" });
     }
 
+    //Send the fetched Blog
+    response.status(200).json({ message: "Blog fetched succesfullly", blog });
+  } catch (error) {
+    response.status(200).json({ message: ` Error: ${error.message}` });
+  }
 }
 
 module.exports = { createBlog, getallBlogs, getBlogbyID };
