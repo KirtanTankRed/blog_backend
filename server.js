@@ -12,6 +12,7 @@ const app = express(); // ✅ Initialize Express
 
 // ✅ Middleware (should come before routes)
 app.use(express.json()); // Parse JSON request body
+app.use(express.urlencoded({ extended: true }));
 
 // // Role based access
 // app.use(checkRole);
