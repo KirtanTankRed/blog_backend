@@ -1,33 +1,34 @@
 const Blog = require("../models/blogModel");
 
 //Craete a new blog (access - blogger, admin only)
-async function createBlog(request, response) {
-  const { title, description } = request.body;
-
-  if (!title || !description) {
-    return response
-      .status(400)
-      .json({ message: "Title and description cannot be empty!" });
-  }
-
-  const imageUrl = request.file ? request.file.path : "uploads/default.jpg"; // Use fallback if no image provided
-
+async function createBlog(req, res) {
   try {
-    const newBlog = new Blog({
-      title: title,
-      image: imageUrl,
-      description: description,
-      author: request.session.user.id, //store logged-in user as author
-    });
+      const { title, description } = req.body;
+      const imageUrl = req.file ? req.file.path : undefined; // Extract file path only if uploaded
 
-    const savedBlog = await newBlog.save();
-    response
-      .status(201)
-      .json({ message: "Blog created successfully!", blog: savedBlog });
+      if (!title || !description) {
+          return res.status(400).json({ message: "Title and description are required" });
+      }
+
+      const user = req.session.user;
+      if (!user) {
+          return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const newBlog = new Blog({
+          title,
+          description,
+          image: imageUrl, // Store image path if provided
+          author: user.id
+      });
+
+      await newBlog.save();
+      res.status(201).json({ message: "Blog created successfully", blog: newBlog });
   } catch (error) {
-    response.status(500).json({ message: error.message });
+      res.status(500).json({ message: error.message });
   }
 }
+
 
 // Get paginated blogs with author details
 async function getallBlogs(request, response) {
@@ -59,7 +60,7 @@ async function getallBlogs(request, response) {
   }
 }
 
-//Get Blog by id
+
 //Get a single blog by ID
 async function getBlogbyID(request, response) {
   try {
@@ -81,4 +82,43 @@ async function getBlogbyID(request, response) {
   }
 }
 
-module.exports = { createBlog, getallBlogs, getBlogbyID };
+//Update a blog by ID
+async function updateBlog(request, response) {
+  try{
+    const{id} = request.params;
+    const{title, description} = request.body;
+    const imageUrl = request.file?request.file.path: undefined; //only update if new image is provided
+
+    //Find blog
+    const blog = await Blog.findById(id);
+
+    if(!blog){
+      return response.status(404).json({message: "Blog not found"});
+    }
+
+    //Get logged in user details
+    const user = request.session.user;
+
+    //Ensure user is either the blog's author (blogger or admin) or an admin
+
+    if (user.id !== blog.author.toString() && user.role !== "admin"){
+      return response.status(403).json({message: "Access denied, Only the author or admin can make the changes"})
+    }
+
+    //Update the provided fields
+    if (title) blog.title = title;
+    if (description) blog.description = description;
+    if (imageUrl) blog.image= imageUrl;
+
+    const updatedBlog = await blog.save();  
+
+    response.status(200).json({message: "Blog updated succesfullly", blog: updatedBlog
+    });
+
+  }catch(error)
+  {
+    response.status(500).json({message: error.message});
+  }
+} 
+
+module.exports = { createBlog, getallBlogs, getBlogbyID, updateBlog };
