@@ -128,4 +128,21 @@ async function getAllUsers(request, response) {
     response.status(500).json({ message: error.message });
   }
 }
-module.exports = { signupUser, loginUser, logoutUser, updateUser, getAllUsers };
+
+//Get user info by id
+async function getUserbyId(request, response) {
+    try {
+      const { id } = request.params; // Get user ID from URL
+      const user = await userModel.findById(id).select("-password"); // Exclude password
+  
+      if (!user) {
+        return response.status(404).json({ message: "User not found" });
+      }
+  
+      response.status(200).json({ message: "User fetched successfully", user });
+    } catch (error) {
+      response.status(500).json({ message: error.message });
+    }
+  }
+  
+module.exports = { signupUser, loginUser, logoutUser, updateUser, getAllUsers, getUserbyId };
