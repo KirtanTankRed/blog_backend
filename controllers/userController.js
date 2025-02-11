@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const {userModel} = require('../models/userModel');
+const userModel = require('../models/userModel');
 
 //User signup
 async function signupUser(request, response) {
@@ -73,4 +73,38 @@ function logoutUser(request, response) {
     });
 };
 
-module.exports = { signupUser, loginUser, logoutUser };
+//Updating user info (admin access only)
+async function updateUser(request, response) {
+    try{
+    const {id} = request.params; //Get user ID from URL
+    const adminUser = request.session.user; //Get logged in user
+    
+    //Ensure can only admins can update user details
+    if (adminUser.role!=="admin"){
+        return response.status(403).json({message: "Access denied. Only an admin can update user info"});
+    }
+
+    //Find the user 
+    const user = await userModel.findById(id);
+    if(!user){
+        return response.status(404).json({message: "User not found"});
+    }
+
+    //Extract fields to update
+    const {name, email, role} = request.body;
+
+    //Update user details (Only fields provided)
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (role) user.role = role;
+
+    await user.save(); //save changes
+
+    response.status(200).json({message: "User info updated succesfullly!", user});
+
+    }catch(error){
+        response.status(500).json({message: error.message});
+    }
+}
+
+module.exports = { signupUser, loginUser, logoutUser, updateUser };
