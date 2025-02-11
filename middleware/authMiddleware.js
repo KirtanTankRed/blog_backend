@@ -12,12 +12,12 @@ function checkRole(...allowedRoles) {
         });
     }
 
-    //Allow access if user has the required role or is an admin
-    if (allowedRoles.includes(user.role) || user.role === "admin") {
+    //Allow access if user has the required role
+    if (allowedRoles.includes(user.role)) {
       return next();
     }
       return  response.status(403).json({
-          message: `Access denied. Requires ${allowedRoles} or admin to access`,
+          message: `Access denied. Requires ${allowedRoles} to access`,
         });
     };
   }

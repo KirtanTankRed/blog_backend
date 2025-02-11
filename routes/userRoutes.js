@@ -1,6 +1,6 @@
 const express =  require('express');
-const {signupUser, loginUser, logoutUser, updateUser} = require('../controllers/userController');
-
+const {signupUser, loginUser, logoutUser, updateUser, getAllUsers} = require('../controllers/userController');
+const checkRole = require('../middleware/authMiddleware');
 const userRoute = express.Router();
 
 //POST: /signup
@@ -13,7 +13,9 @@ userRoute.post("/login", loginUser);
 userRoute.post("/logout", logoutUser);
 
 //PUT: Update user info (admin only)
-userRoute.put('/:id', updateUser);
+userRoute.put('/:id', checkRole("admin"), updateUser);
     
+//GET: Get info of all users
+userRoute.get('/', checkRole("admin"), getAllUsers);
 
 module.exports =  userRoute;
