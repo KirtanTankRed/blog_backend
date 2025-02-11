@@ -1,5 +1,5 @@
 const express =  require('express');
-const {signupUser, loginUser, logoutUser, updateUser, getAllUsers} = require('../controllers/userController');
+const {signupUser, loginUser, logoutUser, updateUser, getAllUsers, getUserbyId} = require('../controllers/userController');
 const checkRole = require('../middleware/authMiddleware');
 const userRoute = express.Router();
 
@@ -17,5 +17,8 @@ userRoute.put('/:id', checkRole("admin"), updateUser);
     
 //GET: Get info of all users
 userRoute.get('/', checkRole("admin"), getAllUsers);
+
+//GET: Get user information by user id
+userRoute.get('/:id', checkRole("admin"), getUserbyId);
 
 module.exports =  userRoute;
