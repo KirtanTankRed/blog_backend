@@ -1,6 +1,14 @@
-const express =  require('express');
-const {signupUser, loginUser, logoutUser, updateUser, getAllUsers, getUserbyId} = require('../controllers/userController');
-const checkRole = require('../middleware/authMiddleware');
+const express = require("express");
+const {
+  signupUser,
+  loginUser,
+  logoutUser,
+  updateUser,
+  getAllUsers,
+  getUserbyId,
+  deleteUser,
+} = require("../controllers/userController");
+const checkRole = require("../middleware/authMiddleware");
 const userRoute = express.Router();
 
 //POST: /signup
@@ -13,12 +21,15 @@ userRoute.post("/login", loginUser);
 userRoute.post("/logout", logoutUser);
 
 //PUT: Update user info (admin only)
-userRoute.put('/:id', checkRole("admin"), updateUser);
-    
+userRoute.put("/:id", checkRole("admin"), updateUser);
+
 //GET: Get info of all users
-userRoute.get('/', checkRole("admin"), getAllUsers);
+userRoute.get("/", checkRole("admin"), getAllUsers);
 
 //GET: Get user information by user id
-userRoute.get('/:id', checkRole("admin"), getUserbyId);
+userRoute.get("/:id", checkRole("admin"), getUserbyId);
 
-module.exports =  userRoute;
+//DELETE: Delete user
+userRoute.delete("/:id", checkRole("admin"), deleteUser);
+
+module.exports = userRoute;

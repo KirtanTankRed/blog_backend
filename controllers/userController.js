@@ -64,12 +64,10 @@ async function loginUser(request, response) {
     email: user.email,
     role: user.role,
   }; //save user info to session
-  response
-    .status(200)
-    .json({
-      message: `Log in successful ${user.name}`,
-      user: request.session.user,
-    });
+  response.status(200).json({
+    message: `Log in successful ${user.name}`,
+    user: request.session.user,
+  });
 }
 
 // User Logout with Session
@@ -119,30 +117,56 @@ async function updateUser(request, response) {
   }
 }
 
-//Get all user (admin only)
+//Get all user (Only Admin can perform this action)
 async function getAllUsers(request, response) {
   try {
     const users = await userModel.find().select("-password"); //Excludes password field
-    response.status(200).json({ message: "Users fetched succesfullly" , users});
+    response.status(200).json({ message: "Users fetched succesfullly", users });
   } catch (error) {
     response.status(500).json({ message: error.message });
   }
 }
 
-//Get user info by id
+//Get user info by id (Only Admin can perform this action)
 async function getUserbyId(request, response) {
-    try {
-      const { id } = request.params; // Get user ID from URL
-      const user = await userModel.findById(id).select("-password"); // Exclude password
-  
-      if (!user) {
-        return response.status(404).json({ message: "User not found" });
-      }
-  
-      response.status(200).json({ message: "User fetched successfully", user });
-    } catch (error) {
-      response.status(500).json({ message: error.message });
+  try {
+    const { id } = request.params; // Get user ID from URL
+    const user = await userModel.findById(id).select("-password"); // Exclude password
+
+    if (!user) {
+      return response.status(404).json({ message: "User not found" });
     }
+
+    response.status(200).json({ message: "User fetched successfully", user });
+  } catch (error) {
+    response.status(500).json({ message: error.message });
   }
-  
-module.exports = { signupUser, loginUser, logoutUser, updateUser, getAllUsers, getUserbyId };
+}
+const User = require("../models/userModel");
+
+// Delete a user (Only Admin can perform this action)
+async function deleteUser(req, res) {
+  try {
+    const userId = req.params.id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await User.findByIdAndDelete(userId);
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+module.exports = {
+  signupUser,
+  loginUser,
+  logoutUser,
+  updateUser,
+  getAllUsers,
+  getUserbyId,
+  deleteUser,
+};
