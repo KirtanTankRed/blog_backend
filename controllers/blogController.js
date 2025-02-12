@@ -45,6 +45,7 @@ async function getallBlogs(request, response) {
     // Fetch blogs with author details, pagination, and sorting
     const blogs = await Blog.find()
       .populate("author", "name email role") // Include author details
+      .populate("likes", "name") //Fetch names of those who liked
       .sort({ createdAt: -1 }) // Sort newest first
       .skip(skip)
       .limit(limit);
@@ -52,11 +53,23 @@ async function getallBlogs(request, response) {
     // Total count of blogs
     const totalBlogs = await Blog.countDocuments();
 
+    //Format response to include all details
+    const formattedBlogs = blogs.map((blog) => ({
+      _id: blog._id,
+      title: blog.title,
+      description: blog.description,
+      image: blog.image,
+      author: blog.author,
+      createdAt: blog.createdAt,
+      likeCount: blog.likes.length, //Total number of likes
+      likedBy: blog.likes.map((user) => ({ _id: user._id, name: user.name })), //Fetch names
+    }));
+
     response.status(200).json({
       message: "Blogs fetched successfully",
       page,
       totalPages: Math.ceil(totalBlogs / limit),
-      blogs,
+      formattedBlogs,
     });
   } catch (error) {
     response.status(500).json({ message: error.message });
@@ -68,17 +81,34 @@ async function getBlogbyID(request, response) {
   try {
     console.log("Inside getBlogbyID function");
     const { id } = request.params;
-    console.log("Received ID:", request.params.id); // Add this
+    // console.log("Received ID:", request.params.id); // DEBUGGING
 
-    //Fetch blog by ID and populate author details
-    // const blog = await Blog.findById(id).populate("author", "name email role");
-    const blog = await Blog.findById(id);
+    // Fetch blog by ID with author and likes populated
+    const blog = await Blog.findById(id)
+      .populate("author", "name email role") // Fetch author details
+      .populate("likes", "name"); // Fetch names of users who liked the blog
+
     if (!blog) {
+      //if no blog found
       return response.status(404).json({ message: "Blog not found" });
     }
 
+    // Format response
+    const formattedBlog = {
+      _id: blog._id,
+      title: blog.title,
+      description: blog.description,
+      image: blog.image,
+      author: blog.author,
+      createdAt: blog.createdAt,
+      likeCount: blog.likes.length, // Total likes
+      likedBy: blog.likes.map((user) => ({ _id: user._id, name: user.name })), // Names of users who liked
+    };
+
     //Send the fetched Blog
-    response.status(200).json({ message: "Blog fetched succesfullly", blog });
+    response
+      .status(200)
+      .json({ message: "Blog fetched succesfullly", formattedBlog });
   } catch (error) {
     response.status(200).json({ message: ` Error: ${error.message}` });
   }
@@ -104,12 +134,9 @@ async function updateBlog(request, response) {
     //Ensure user is either the blog's author (blogger or admin) or an admin
 
     if (user.id !== blog.author.toString() && user.role !== "admin") {
-      return response
-        .status(403)
-        .json({
-          message:
-            "Access denied, Only the author or admin can make the changes",
-        });
+      return response.status(403).json({
+        message: "Access denied, Only the author or admin can make the changes",
+      });
     }
 
     //Update the provided fields
@@ -133,7 +160,9 @@ async function deleteBlog(request, response) {
     const user = request.session.user;
 
     if (!user) {
-      return response.status(401).json({ message: "Unauthorized. Please log in." });
+      return response
+        .status(401)
+        .json({ message: "Unauthorized. Please log in." });
     }
 
     const blog = await Blog.findById(id);
@@ -149,10 +178,53 @@ async function deleteBlog(request, response) {
 
     if (isAuthor || isAdmin) {
       await blog.deleteOne();
-      return response.status(200).json({ message: "Blog deleted successfully!" });
+      return response
+        .status(200)
+        .json({ message: "Blog deleted successfully!" });
     }
 
-    return response.status(403).json({ message: "Access denied. Only the author or an admin can delete this blog." });
+    return response.status(403).json({
+      message:
+        "Access denied. Only the author or an admin can delete this blog.",
+    });
+  } catch (error) {
+    response.status(500).json({ message: error.message });
+  }
+}
+
+//Like or unlike a blog
+async function likeBlog(request, response) {
+  try {
+    const { id } = request.params; //Get Blog id
+    const userId = request.session.user.id; //Get the logged-in User's ID
+
+    //Find the blog
+    const blog = await Blog.findById(id); //get the blog by id from database
+    if (!blog) {
+      //No blog case
+      return response.status(404).json({ message: "Blog not found!" });
+    }
+
+    const hasLiked = blog.likes.includes(userId); //Liked or not
+
+    if (hasLiked) {
+      //liked already cased
+      //If user had liked already, Unlike it (Remove user id from array)
+      blog.likes = blog.likes.filter((like) => like.toString() !== userId);
+    } else {
+      //Like: Add user ID to like array
+      blog.likes.push(userId);
+    }
+
+    await blog.save();
+
+    response.status(200).json({
+      message: hasLiked
+        ? "Blog unliked succesfullly!"
+        : "Blog liked succesfullly!",
+      likeCount: blog.likes.length,
+      likedBy: blog.likes,
+    });
   } catch (error) {
     response.status(500).json({ message: error.message });
   }
@@ -164,4 +236,5 @@ module.exports = {
   getBlogbyID,
   updateBlog,
   deleteBlog,
+  likeBlog,
 };

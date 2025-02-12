@@ -1,7 +1,7 @@
 const express = require('express');
 const checkRole = require('../middleware/authMiddleware');
 const uploadMiddleware = require('../middleware/authMiddleware');
-const {createBlog, getallBlogs, getBlogbyID, updateBlog, deleteBlog} = require('../controllers/blogController');
+const {createBlog, getallBlogs, getBlogbyID, updateBlog, deleteBlog, likeBlog} = require('../controllers/blogController');
 const blogRoute = express.Router();
 
 
@@ -20,5 +20,8 @@ blogRoute.put("/:id", checkRole("blogger", "admin"), uploadMiddleware, updateBlo
 
 //DELETE: Delete a blog
 blogRoute.delete("/:id", checkRole("blogger", "admin"), deleteBlog);
+
+//POST: Like a blog
+blogRoute.post("/:id/like", checkRole("reader", "blogger", "admin"), likeBlog);
 
 module.exports = blogRoute;
