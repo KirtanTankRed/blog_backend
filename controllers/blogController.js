@@ -1,3 +1,4 @@
+const blogModel = require("../models/blogModel");
 const Blog = require("../models/blogModel");
 
 //Craete a new blog (access - blogger, admin only)
@@ -34,83 +35,119 @@ async function createBlog(req, res) {
 }
 
 // Get paginated blogs with author details
-async function getallBlogs(request, response) {
+// Fetch all blogs with author, likes, and comments
+async function getAllBlogs(req, res) {
   try {
-    // console.log("Inside getallBlogs function"); //DEBUGGING
-    // Pagination setup
-    const page = parseInt(request.query.page) || 1;
-    const limit = parseInt(request.query.limit) || 10;
-    const skip = (page - 1) * limit;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
 
-    // Fetch blogs with author details, pagination, and sorting
-    const blogs = await Blog.find()
-      .populate("author", "name email role") // Include author details
-      .populate("likes", "name") //Fetch names of those who liked
-      .sort({ createdAt: -1 }) // Sort newest first
-      .skip(skip)
-      .limit(limit);
+      const blogs = await Blog.find()
+          .populate("author", "name email role") // Populate author details
+          .populate("likes", "name") // Populate names of users who liked the blog
+          .populate({
+              path: "comments.commenter",
+              select: "name role" // Populate commenter details
+          })
+          .sort({ createdAt: -1 }) // Sort newest first
+          .skip(skip)
+          .limit(limit);
 
-    // Total count of blogs
-    const totalBlogs = await Blog.countDocuments();
+      const totalBlogs = await Blog.countDocuments();
 
-    //Format response to include all details
-    const formattedBlogs = blogs.map((blog) => ({
-      _id: blog._id,
-      title: blog.title,
-      description: blog.description,
-      image: blog.image,
-      author: blog.author,
-      createdAt: blog.createdAt,
-      likeCount: blog.likes.length, //Total number of likes
-      likedBy: blog.likes.map((user) => ({ _id: user._id, name: user.name })), //Fetch names
-    }));
+      // Format blogs to include required details
+      const formattedBlogs = blogs.map(blog => ({
+          _id: blog._id,
+          title: blog.title,
+          description: blog.description,
+          image: blog.image,
+          author: {
+              _id: blog.author._id,
+              name: blog.author.name,
+              email: blog.author.email,
+              role: blog.author.role
+          },
+          createdAt: blog.createdAt,
+          likeCount: blog.likes.length,
+          likedBy: blog.likes.map(user => ({ _id: user._id, name: user.name })),
+          totalComments: blog.comments.length,
+          comments: blog.comments.map(comment => ({
+              _id: comment._id,
+              text: comment.text,
+              commenter: {
+                  _id: comment.commenter._id,
+                  name: comment.commenter.name,
+                  role: comment.commenter.role
+              },
+              tag: comment.commenter._id.toString() === blog.author._id.toString() ? "Author" : null,
+              createdAt: comment.createdAt
+          }))
+      }));
 
-    response.status(200).json({
-      message: "Blogs fetched successfully",
-      page,
-      totalPages: Math.ceil(totalBlogs / limit),
-      formattedBlogs,
-    });
+      res.status(200).json({
+          message: "Blogs fetched successfully",
+          page,
+          totalPages: Math.ceil(totalBlogs / limit),
+          formattedBlogs
+      });
   } catch (error) {
-    response.status(500).json({ message: error.message });
+      res.status(500).json({ message: error.message });
   }
 }
 
 //Get a single blog by ID
-async function getBlogbyID(request, response) {
+// Fetch a single blog by ID with comments
+async function getBlogbyID(req, res) {
   try {
-    console.log("Inside getBlogbyID function");
-    const { id } = request.params;
-    // console.log("Received ID:", request.params.id); // DEBUGGING
+      const { id } = req.params;
 
-    // Fetch blog by ID with author and likes populated
-    const blog = await Blog.findById(id)
-      .populate("author", "name email role") // Fetch author details
-      .populate("likes", "name"); // Fetch names of users who liked the blog
+      const blog = await Blog.findById(id)
+          .populate("author", "name email role")
+          .populate("likes", "name")
+          .populate({
+              path: "comments.commenter",
+              select: "name role"
+          });
 
-    if (!blog) {
-      //if no blog found
-      return response.status(404).json({ message: "Blog not found" });
-    }
+      if (!blog) {
+          return res.status(404).json({ message: "Blog not found" });
+      }
 
-    // Format response
-    const formattedBlog = {
-      _id: blog._id,
-      title: blog.title,
-      description: blog.description,
-      image: blog.image,
-      author: blog.author,
-      createdAt: blog.createdAt,
-      likeCount: blog.likes.length, // Total likes
-      likedBy: blog.likes.map((user) => ({ _id: user._id, name: user.name })), // Names of users who liked
-    };
+      // Format blog to match the existing structure
+      const formattedBlog = {
+          _id: blog._id,
+          title: blog.title,
+          description: blog.description,
+          image: blog.image,
+          author: {
+              _id: blog.author._id,
+              name: blog.author.name,
+              email: blog.author.email,
+              role: blog.author.role
+          },
+          createdAt: blog.createdAt,
+          likeCount: blog.likes.length,
+          likedBy: blog.likes.map(user => ({ _id: user._id, name: user.name })),
+          totalComments: blog.comments.length,
+          comments: blog.comments.map(comment => ({
+              _id: comment._id,
+              text: comment.text,
+              commenter: {
+                  _id: comment.commenter._id,
+                  name: comment.commenter.name,
+                  role: comment.commenter.role
+              },
+              tag: comment.commenter._id.toString() === blog.author._id.toString() ? "Author" : null,
+              createdAt: comment.createdAt
+          }))
+      };
 
-    //Send the fetched Blog
-    response
-      .status(200)
-      .json({ message: "Blog fetched succesfullly", formattedBlog });
+      res.status(200).json({
+          message: "Blog fetched successfully",
+          blog: formattedBlog
+      });
   } catch (error) {
-    response.status(200).json({ message: ` Error: ${error.message}` });
+      res.status(500).json({ message: error.message });
   }
 }
 
@@ -230,11 +267,42 @@ async function likeBlog(request, response) {
   }
 }
 
+//Comment on a blog
+async function addComment(request, response) {
+  try {
+    const { id } = request.params; //Get blog id from url
+    const { text } = request.body; //Comment text
+    const userId = request.session.user.id; //Get logged-in user
+
+    //Validate input
+    if (!text.trim()) {
+      return response.status(400).json({ message: "Comment cannot be empty!" });
+    }
+
+    //Find the blog
+    const blog = await blogModel.findById(id);
+    if (!blog) {
+      return response.status(404).json({ message: "Blog does not exist." });
+    }
+
+    //Add comment to the Blog
+    blog.comments.push({ text, commenter: userId }); //will add this info in addiiton to other exisitng comments
+
+    //Save updated blog
+    await blog.save();
+
+    response.status(200).json({ message: "Comment added succesfullly!" });
+  } catch (error) {
+    response.status(500).json({ message: error.message });
+  }
+}
+
 module.exports = {
   createBlog,
-  getallBlogs,
+  getAllBlogs,
   getBlogbyID,
   updateBlog,
   deleteBlog,
   likeBlog,
+  addComment,
 };
